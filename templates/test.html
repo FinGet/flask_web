@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <h1>Welcome, {{ username }}!</h1>
+  <p>Today is {{ date }}</p>
+  <ul>
+    {% for item in items %}
+    {% if item == 'apple' %}
+    <li>I like {{item}}</li>
+    {% else %}
+    <li>I don't like {{item}}</li>
+    {% endif %}
+    {% endfor %}
+  </ul>
+
+  <form method="POST" action="{{ url_for('upload_file') }}" enctype="multipart/form-data">
+    <input type="file" id="getFile" name="filename" required>
+    <input type="submit" value="Upload">
+  </form>
+</body>
+</html>
