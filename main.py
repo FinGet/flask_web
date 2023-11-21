@@ -1,11 +1,14 @@
+import logging
 import time
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from routers.test import router as test_router
 from routers.user import router as user_router
 from routers.user_db import router as user_db_router
 from config import Settings
 from fastapi.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from log import logger
 
 
 class CustomHeaderMiddleware(BaseHTTPMiddleware):
@@ -14,17 +17,47 @@ class CustomHeaderMiddleware(BaseHTTPMiddleware):
     response.headers["X-Custom"] = "Example"
     return response
   
+class CustomExceptionMiddleware(BaseHTTPMiddleware):
+  async def dispatch(self, request, call_next):
+    try:
+      response = await call_next(request)
+    except Exception as e:
+      logger.error('error: ', e)
+      print('error: ', e)
+      return JSONResponse(
+        status_code=500,
+        content={"message": "Server Error"},
+      )
+    return response
+
+  
 middleware = [
-  Middleware(CustomHeaderMiddleware)
+  Middleware(CustomHeaderMiddleware),
+  Middleware(CustomExceptionMiddleware),
 ]
 
 app = FastAPI(middleware=middleware)
 
 settings = Settings()
 
+logger_ac = logging.getLogger("uvicorn.access")
+logger_ac.handlers = []
+
 app.include_router(test_router)
 app.include_router(user_router)
 app.include_router(user_db_router)
+
+@app.get("/error")
+async def error():
+  logger.info('请求错误接口')
+  print(a)
+  b = 1 / 0
+  # try:
+  #   print(a)
+  #   b = 1 / 0
+  # except Exception as e:
+  #   print('err: ', e)
+  #   raise HTTPException(status_code=500, detail="Server Error")
 
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
