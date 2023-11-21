@@ -83,3 +83,64 @@ async def add_process_time_header(request: Request, call_next):
   response.headers["X-Process-Time"] = str(process_time)
   return response
 ```
+
+推荐以列表的形式添加中间件，这样可以保证中间件的执行顺序
+```python
+from fastapi.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
+
+
+class CustomHeaderMiddleware(BaseHTTPMiddleware):
+  async def dispatch(self, request, call_next):
+    response = await call_next(request)
+    response.headers["X-Custom"] = "Example"
+    return response
+  
+middleware = [
+  Middleware(CustomHeaderMiddleware)
+]
+
+app = FastAPI(middleware=middleware)
+```
+
+fastapi 内置的 middleware
+```python
+from fastapi.middleware.cors import CORSMiddleware
+
+origins = [
+  "http://localhost.tiangolo.com",
+  "https://localhost.tiangolo.com",
+  "http://localhost",
+  "http://localhost:8080",
+]
+
+app.add_middleware(
+  CORSMiddleware,
+  allow_origins=origins,
+  allow_credentials=True,
+  allow_methods=["*"],
+  allow_headers=["*"],
+)
+```
+
+## jwt
+  
+```python
+from jose import JWTError, jwt
+
+
+# 加密密钥 openssl rand -hex 32 
+SECRET_KEY = '3c2291a895c805b34abdd2c52e2b121c170d13b3c60316cf6468724da9d606e1'
+
+# 设置过期时间 现在时间 + 10小时
+expire = datetime.datetime.utcnow() + datetime.timedelta(hours=10)
+
+to_encode = {"exp": expire, "username": "admin", "password": "123321"}
+
+# 加密生成token
+encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm="HS256")
+print(encoded_jwt)
+
+# 解密token
+decoded_jwt = jwt.decode(encoded_jwt, SECRET_KEY, algorithms=["HS256"])
+```
