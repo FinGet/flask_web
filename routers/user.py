@@ -6,38 +6,44 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from passlib.context import CryptContext
 from jose import ExpiredSignatureError, JWTError, jwt
 
-router = APIRouter() 
+router = APIRouter()
 
 fake_user_db = [
-  {"username": "foo", "password": '123456' },
-  {"username": "admin", "password": '123321' },
+    {"username": "foo", "password": "123456"},
+    {"username": "admin", "password": "123321"},
 ]
 
+
 class User(BaseModel):
-  username: str
-  password: str
+    username: str
+    password: str
+
 
 @router.post("/users/me")
 async def read_user_me(user: User):
-  is_user = False
-  for db_user in fake_user_db:
-    if db_user["username"] == user.username and db_user["password"] == user.password:
-      is_user = True
-      break
+    is_user = False
+    for db_user in fake_user_db:
+        if (
+            db_user["username"] == user.username
+            and db_user["password"] == user.password
+        ):
+            is_user = True
+            break
 
-  return {"is_user": is_user}
+    return {"is_user": is_user}
+
 
 security = HTTPBasic()
+
 
 # basic auth
 @router.post("/users/login")
 async def login(credentials: Annotated[HTTPBasicCredentials, Depends(security)]):
-  return {"username": credentials.username, "password": credentials.password}
-
+    return {"username": credentials.username, "password": credentials.password}
 
 
 # 加密密钥
-SECRET_KEY = '3c2291a895c805b34abdd2c52e2b121c170d13b3c60316cf6468724da9d606e1'
+SECRET_KEY = "3c2291a895c805b34abdd2c52e2b121c170d13b3c60316cf6468724da9d606e1"
 
 # 设置过期时间 现在时间 + 10小时
 expire = datetime.datetime.utcnow() + datetime.timedelta(hours=10)
@@ -53,54 +59,63 @@ decoded_jwt = jwt.decode(encoded_jwt, SECRET_KEY, algorithms=["HS256"])
 
 # 错误的token
 
-try: 
-  payload = jwt.decode(encoded_jwt, "wrong_key", algorithms=["HS256"])
+try:
+    payload = jwt.decode(encoded_jwt, "wrong_key", algorithms=["HS256"])
 except ExpiredSignatureError:
-  print("token过期")
+    print("token过期")
 except JWTError:
-  print("token错误")
+    print("token错误")
+
 
 # Union[str, Any]表示一个可以是str类型或者任何其他类型的变量
-def create_access_token(subject: Union[str, Any], expires_delta: datetime.timedelta = None):
-  if expires_delta:
-    expire = datetime.datetime.utcnow() + expires_delta
-  else:
-    expire = datetime.datetime.utcnow() + datetime.timedelta(hours=10)
+def create_access_token(
+    subject: Union[str, Any], expires_delta: datetime.timedelta = None
+):
+    if expires_delta:
+        expire = datetime.datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.datetime.utcnow() + datetime.timedelta(hours=10)
 
-  to_encode = {"exp": expire, "sub": str(subject)}
-  encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm="HS256")
+    to_encode = {"exp": expire, "sub": str(subject)}
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm="HS256")
 
-  return encoded_jwt
+    return encoded_jwt
 
 
 # Optional[str] 表示可选参数 等价于 Union[str, None]
 # Header(...) 是一个装饰器，用于获取请求头的值
 def check_jwt_token(token: Optional[str] = Header(..., alias="Authorization")):
-  print(token)
-  try:
-    payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-    return payload
-  except ExpiredSignatureError:
-    return 'token过期'
-  except (JWTError, AttributeError):
-    return 'token错误'
-  
+    print(token)
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        return payload
+    except ExpiredSignatureError:
+        return "token过期"
+    except (JWTError, AttributeError):
+        return "token错误"
+
+
 @router.post("/login/token")
 def login_get_token(user: User):
-  is_user = False
-  for db_user in fake_user_db:
-    if db_user["username"] == user.username and db_user["password"] == user.password:
-      is_user = True
-      break
+    is_user = False
+    for db_user in fake_user_db:
+        if (
+            db_user["username"] == user.username
+            and db_user["password"] == user.password
+        ):
+            is_user = True
+            break
 
-  if is_user:
-    return {"token": create_access_token(user.username)}
-  else:
-    return {"token": None}
-  
-@router.post('/login/check')
+    if is_user:
+        return {"token": create_access_token(user.username)}
+    else:
+        return {"token": None}
+
+
+@router.post("/login/check")
 def login_check(token: Union[str, Any] = Depends(check_jwt_token)):
-  return {"user_info": token}
+    return {"user_info": token}
+
 
 # Depends是一个用于依赖注入的FastAPI框架中的装饰器。
 # 它的作用是将依赖项注入到函数中，以便在函数被调用时使用这些依赖项。
