@@ -15,7 +15,9 @@ def get_db():
         db.close()
 
 
-@router.post("/db/create_user", response_model=schemas.User)
+@router.post(
+    "/db/create_user", response_model=schemas.User, summary="创建用户", tags=["db"]
+)
 async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
@@ -23,7 +25,7 @@ async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return crud.create_user(db=db, user=user)
 
 
-@router.get("/db/get_user/{id}", response_model=schemas.User)
+@router.get("/db/get_user/{id}", response_model=schemas.User, tags=["db"])
 async def get_user(id: int, db: Session = Depends(get_db)):
     user = crud.get_user(db, user_id=id)
     if user is None:
@@ -37,11 +39,11 @@ class Obj(BaseModel):
     item: schemas.ItemCreate  # 子模型
 
 
-@router.post("/db/create_item")
+@router.post("/db/create_item", tags=["db"])
 async def create_item(obj: Obj, db: Session = Depends(get_db)):
     return crud.create_user_item(db=db, item=obj.item, user_id=obj.user_id)
 
 
-@router.get("/db/get_items")
+@router.get("/db/get_items", tags=["db"])
 async def get_items(db: Session = Depends(get_db)):
     return crud.get_items(db=db)
