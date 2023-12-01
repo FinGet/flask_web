@@ -1,8 +1,11 @@
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import List, Optional
+from uuid import UUID
 from fastapi import (
     APIRouter,
     Body,
+    Depends,
     File,
     Form,
     HTTPException,
@@ -123,7 +126,7 @@ async def test_file(file_path: str):
 ## 长度和正则表达式验证
 @router.get("/test/len/{number}/{regex}", tags=["test"], summary="长度和正则表达式验证")
 async def test_len(
-    number: int = Path(..., gt=10, le=20), regex: str = Path(..., regex="^a")
+    number: int = Path(..., gt=10, le=20), regex: str = Path(..., pattern="^a")
 ):
     # gt 大于 le 小于 eq 等于 ge 大于等于 lt 小于等于 ne 不等于
     return {"number": number, "regex": regex}
@@ -131,7 +134,7 @@ async def test_len(
 
 ## 校验query参数
 @router.get("/test/query", tags=["test"], summary="校验query参数")
-async def test_query(q: str = Query(..., min_length=3, max_length=50, regex="^a")):
+async def test_query(q: str = Query(..., min_length=3, max_length=50, pattern="^a")):
     return {"q": q}
 
 
@@ -195,7 +198,7 @@ class City(BaseModel):
     population: int = Field(default=None, title="人口数", ge=1000)
 
     class Config:
-        schema_extra = {  # schema_extra用于定义请求体的示例
+        json_schema_extra = {  # schema_extra用于定义请求体的示例
             "example": {
                 "country": "中国",
                 "provence": "四川",
@@ -219,8 +222,8 @@ async def test_cookie(cookie: str, response: Response):
 
 ## 读取header信息
 @router.get("/test/header", tags=["test"], summary="读取header信息")
-async def test_header(user_agent: Optional[str] = Header(None)):
-    return {"User-Agent": user_agent}
+async def test_header(user_agent: Optional[str] = Header(None), token: Optional[str] = Header(None)):
+    return {"User-Agent": user_agent, "token": token}
 
 
 ## 响应模型
@@ -229,7 +232,7 @@ async def test_response():
     return Item(name="Foo", description="There comes my hero", price=4.2, tax=0.1)
 
 
-## repose_model_exclude_unset 响应模型中排除未设置的属性
+## response_model_exclude_unset 响应模型中排除未设置的属性 如果不传递，我不想要返回带默认值的，
 @router.get(
     "/test/response_exclude_unset",
     tags=["test"],
@@ -291,3 +294,70 @@ async def test_unicorn(name: str):
         return {"unicorn_name": name}
     else:
         raise UnicornException(name=name)
+
+
+@router.put('/test/date', tags=["test"])
+async def test_date(
+    item_id: UUID,
+    start_time: Optional[datetime] = Body(None),
+    end_time: Optional[datetime] = Body(None),
+    after: Optional[timedelta] = Body(None),
+):
+    start_process = start_time
+    duration = end_time - start_process
+    return {
+        "id": item_id,
+        "start_time": start_process,
+        "end_time": end_time,
+        "after": after,
+        "start_process": start_process,
+        "duration": duration,
+    }
+
+
+# 依赖注入
+async def common_parameters(q: Optional[str] = None, skip: int = 0, limit: int = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@router.get("/test/expends", tags=["test"], summary="依赖注入")
+async def test_common(commons: dict = Depends(common_parameters)):
+    return commons
+
+# 用类作为依赖注入
+
+class CommonQueryParams:
+    def __init__(self, q: Optional[str] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+fake_items_db = [{"city": "beijing"}, {"city": "shanghai"},
+                 {"city": "heze"}]
+
+@router.get("/test/expends2", tags=["test"], summary="依赖注入")
+async def test_common2(commons: CommonQueryParams = Depends()):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q}) # update() 方法把字典参数 dict2 的 key/value(键/值) 对更新到字典 dict 里。
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+
+def verify_token(token: str = Header(...)):
+    if token != '123456':
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+def verify_key(key: str = Header(...)):
+    if key != 'sss':
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    
+@router.get("/test/expends3", tags=["test"], summary="依赖注入", dependencies=[Depends(verify_token), Depends(verify_key)])
+async def test_common3():
+    return {"msg": "ok"}
+
+
+# 全局依赖
+"""
+    app = FastAPI(dependencies=[Depends(verify_token), Depends(verify_key)])
+"""

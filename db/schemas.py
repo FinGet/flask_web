@@ -16,7 +16,7 @@ class Item(ItemBase):
     owner_id: int
 
     class Config:  # 用于配置模型
-        orm_mode = True  # orm_mode = True，允许模型使用ORM
+        from_attributes = True  # from_attributes = True，允许模型使用ORM
 
 
 class UserBase(BaseModel):
@@ -33,4 +33,4 @@ class User(UserBase):
     items: List[Item] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
