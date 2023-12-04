@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from routers.test import router as test_router
 from routers.user import router as user_router
 from routers.user_db import router as user_db_router
+from routers.oauth2 import router as oauth2_router
 from config import Settings
 from fastapi.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -50,6 +51,7 @@ logger_ac.handlers = []
 app.include_router(test_router)
 app.include_router(user_router)
 app.include_router(user_db_router)
+app.include_router(oauth2_router)
 
 
 @app.get("/error")
