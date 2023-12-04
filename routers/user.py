@@ -94,6 +94,15 @@ def check_jwt_token(token: Optional[str] = Header(..., alias="Authorization")):
     except (JWTError, AttributeError):
         return "token错误"
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def verify_password(plain_password: str, hashed_password: str):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password: str):
+    return pwd_context.hash(password)
+
+
 
 @router.post("/login/token")
 def login_get_token(user: User):
