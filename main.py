@@ -7,6 +7,7 @@ from routers.user import router as user_router
 from routers.user_db import router as user_db_router
 from routers.oauth2 import router as oauth2_router
 from routers.background import router as background_router
+from routers.websocket import router as websocket_router
 from config import Settings
 from fastapi.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -54,7 +55,7 @@ app.include_router(user_router)
 app.include_router(user_db_router)
 app.include_router(oauth2_router)
 app.include_router(background_router, prefix="/background", tags=["background"])
-
+app.include_router(websocket_router, prefix="/websocket", tags=["websocket"])
 
 @app.get("/error")
 async def error():
