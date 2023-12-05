@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "fast-course"
+version = "0.1.0"
+description = "在线课程学习系统"
+authors = ["biao.zhang <biao.zhang@rdc-west.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.104.1"
+sqlalchemy = "^2.0.23"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
