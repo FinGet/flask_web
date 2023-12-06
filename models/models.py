@@ -13,7 +13,7 @@ class User(Base):
   studentNum = Column(Integer, nullable = True) # 学号
   age = Column(Integer) # 年龄
   sex = Column(String(length = 8), default = "man") # 性别
-  role = Column(Integer,) # 角色
+  role = Column(String(length = 32)) # 角色
   createTime = Column(DateTime, default = datetime.now) # 添加时间
 
 class Role(Base):

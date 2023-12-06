@@ -10,6 +10,8 @@ python = "^3.10"
 fastapi = "^0.104.1"
 sqlalchemy = "^2.0.23"
 loguru = "^0.7.2"
+jose = "^1.0.0"
+passlib = "^1.7.4"
 
 
 [build-system]
