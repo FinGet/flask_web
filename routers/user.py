@@ -39,7 +39,9 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     try:
         user = db_create_user(db, user)
         logger.info("创建用户成功")
-        return response(200, "创建用户成功", user.model_dump())
+        return response(200, "创建用户成功", {
+            "username" : user.username,
+        })
     except Exception as e:
         logger.exception(e)
         return response(100108, "创建用户失败", "")

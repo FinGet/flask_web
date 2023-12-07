@@ -8,8 +8,8 @@ def get_user(db: Session, user_id: int):
 
 def db_create_user(db: Session, user: UserCreate):
     roles = db.query(Role).filter(Role.name == user.role).first()
-    # db_user = User(**user.dict())
-    db_user = User(user.model_dump())
+    db_user = User(**user.dict())
+    # db_user = User(user.model_dump())
     db_user.role = roles.id
     db.add(db_user)
     db.commit()

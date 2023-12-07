@@ -12,6 +12,7 @@ sqlalchemy = "^2.0.23"
 loguru = "^0.7.2"
 jose = "^1.0.0"
 passlib = "^1.7.4"
+aioredis = "^2.0.1"
 
 
 [build-system]
