@@ -35,3 +35,15 @@
     ├── __init__.py
     └── testmain.py
 ```
+## 虚拟环境 启动项目
+```base
+/usr/bin/env /Users/xxxx/Library/Caches/pypoetry/virtualenvs/fast-course-xlbmpjxb-py3.10/bin/python -m uvicorn main:app --reload
+```
+
+## 安装 redis
+```bash
+brew install redis
+
+# 启动 redis & run in background
+brew services start redis 
+```

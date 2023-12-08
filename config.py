@@ -1,3 +1,6 @@
 redishost = 'localhost'
-redisport = 6379
-redisdb = 0
+redisport = '6379'
+redisdb = '0'
+SECRET_KEY = "3c2291a895c805b34abdd2c52e2b121c170d13b3c60316cf6468724da9d606e1"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
