@@ -24,6 +24,13 @@ def create_access_token(data: dict):
     encode_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encode_jwt
 
+def decode_redis_hash(hash_dict):
+    """
+    将从 Redis 获取的字节串字典转换为字符串字典
+    """
+    return {key.decode('utf-8'): value.decode('utf-8') for key, value in hash_dict.items()}
+
+
 @router.post('/create')
 async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     logger.info("创建用户")
@@ -35,6 +42,8 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
         user.role not in ["student", "teacher"]
     ):
         return response(100104, "角色不符合要求", "")
+    
+    # 判断用户名是否存在
     db_crest = get_user_by_username(db, user.username)
     if db_crest:
         return response(100105, "用户名已存在", "")
@@ -45,6 +54,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
         logger.exception(e)
         return response(100107, "密码加密失败", "")
     try:
+        # 数据库 创建用户
         user = db_create_user(db, user)
         logger.info("创建用户成功")
         return response(200, "创建用户成功", {
@@ -75,29 +85,27 @@ async def login(request: Request, user: UserLogin, db: Session = Depends(get_db)
         else:
             return response(100111, "用户已登录", "")
     else:
-        result = await request.app.state.redis.hgetall(user.username+"_password", encoding = "utf-8")
-        if not result:
+        key = user.username+"_password"
+        result_bytes = await request.app.state.redis.hgetall(key)
+        if not result_bytes:
             times = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
-            await request.app.state.redis.hmset_dict(user.username+"_password", num = 0, times = times)
+            await request.app.state.redis.hmset(key, mapping={'num': 0, 'times': times})
         else:
-            errornum = int(result["num"])
-            numtime = (datetime.now() - datetime.strptime(result["times"], "%Y-%m-%d %H:%M:%S")).seconds / 60
-
-            if errornum < 5 and numtime < 30:
+            result = decode_redis_hash(result_bytes)
+            errornum = int(result['num'])
+            # strptime 将字符串转换为时间格式
+            numtime = (datetime.now() - datetime.strptime(result['times'], "%Y-%m-%d %H:%M:%S")).seconds / 60
+            
+            if errornum < 5:
                 errornum += 1
-                await request.app.state.redis.hmset_dict(user.username+"_password", num = errornum)
+                await request.app.state.redis.hmset(key, mapping={'num': errornum})
                 return response(100113, "密码错误", "")
-            elif errornum < 5 and numtime >= 30:
-                errornum = 1
-                times = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
-                request.app.state.redis.hmset_dict(user.username+"_password", num = errornum, times = times)
-                return response(100113, "密码错误", "")
-            elif errornum > 5 and numtime < 30:
+            elif errornum >= 5 and numtime < 30:
                 errornum += 1
-                await request.app.state.redis.hmset_dict(user.username+"_password", num = errornum)
+                await request.app.state.redis.hmset(key, mapping = {'num': errornum})
                 return response(100112, "密码错误次数过多，请30分钟后再试", "")
             else:
                 errornum = 1
                 times = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
-                request.app.state.redis.hmset_dict(user.username+"_password", num = errornum, times = times)
+                await request.app.state.redis.hmset(key, mapping={'num': errornum, 'times': times})
                 return response(100113, "密码错误", "")
