@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
-import aioredis
+from redis import asyncio as aioredis
 import uvicorn
 from core.init_db import init_db
 from routers import user

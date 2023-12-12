@@ -11,11 +11,11 @@ fastapi = "^0.104.1"
 sqlalchemy = "^2.0.23"
 loguru = "^0.7.2"
 passlib = "^1.7.4"
-aioredis = "^2.0.1"
 uvicorn = {extras = ["standard"], version = "^0.24.0.post1"}
 pymysql = "^1.1.0"
 python-jose = "^3.3.0"
 bcrypt = "^4.1.1"
+redis = "^5.0.1"
 
 
 [build-system]
