@@ -1,11 +1,13 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, Request
+import traceback
+from typing import Optional
+from fastapi import APIRouter, Body, Depends, HTTPException, Header, Request, status
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from config import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
 from core.init_db import get_db
-from models.crud import db_create_user, get_user_by_username
-from models.schemas import UserCreate, UserLogin
+from models.crud import db_create_user, get_role_name, get_user_by_username
+from models.schemas import UserChangepassword, UserCreate, UserLogin, UsernameRole
 from sqlalchemy.orm import Session
 from common.logs import logger
 from common.jsontools import response
@@ -109,3 +111,72 @@ async def login(request: Request, user: UserLogin, db: Session = Depends(get_db)
                 times = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
                 await request.app.state.redis.hmset(key, mapping={'num': errornum, 'times': times})
                 return response(100113, "密码错误", "")
+            
+async def get_cure_user(request: Request, token: Optional[str] = Header(...), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+    )
+
+    credentials_FOR_exception = HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="用户未登录或者token失效",   
+    )
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHM)
+        print(payload) # {'sub': '张三'}
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        userCache = await request.app.state.redis.get(username)
+        if not userCache and userCache != token:
+            raise credentials_FOR_exception
+        userRole = get_role_name(db, get_user_by_username(db, username).role)
+        user = UsernameRole(username=username, role=userRole)
+        return user
+    except jwt.JWTError:
+        logger.error(traceback.format_exc())
+        raise credentials_exception
+    
+@router.get('/getCurrentUser')
+async def get_current_user(user: UsernameRole = Depends(get_cure_user), db: Session = Depends(get_db)):
+    db_user = get_user_by_username(db, user.username)
+    data = {
+        "username": db_user.username,
+        "sex": db_user.sex,
+        "age": db_user.age,
+        "role": db_user.role,
+    }
+    if user.role == "student":
+        data["studentNum"] = db_user.studentNum
+    else:
+        data["jobNum"] = db_user.jobNum
+
+    return response(code=200, message="成功", data=data)
+
+@router.post('/changepassword')
+async def change_password(request: Request, changePwd: UserChangepassword, user = Depends(get_cure_user),  db: Session = Depends(get_db)):
+    if changePwd.oldPassword == "" or changePwd.newPassword == "":
+        return response(code=400, message="密码不能为空")
+    if changePwd.newPassword == changePwd.oldPassword:
+        return response(code=400, message="新密码不能与旧密码相同")
+    db_user = get_user_by_username(db, user.username)
+    print(db_user.password, changePwd.oldPassword, changePwd.newPassword)
+    isVerify = verify_password(changePwd.oldPassword, db_user.password)
+    if isVerify:
+        hashPwd = get_password_hash(changePwd.newPassword)
+        # db_user.update({"password": hashPwd})
+        db_user.password = hashPwd
+        print(db_user)
+        try: 
+            db.commit()
+            db.refresh(db_user)
+        except Exception as e:
+            logger.exception(e)
+            return response(code=500, message="修改密码失败")   
+        
+        request.app.state.redis.delete(user.username)
+        request.app.state.redis.delete(user.username + "_password")
+        return response(code=200, message="修改密码成功")
+    return response(code=400, message="旧密码错误", data = '')

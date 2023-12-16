@@ -40,6 +40,11 @@
 /usr/bin/env /Users/xxxx/Library/Caches/pypoetry/virtualenvs/fast-course-xlbmpjxb-py3.10/bin/python -m uvicorn main:app --reload
 ```
 
+```base 
+poetry run uvicron:app --reload
+```
+
+
 ## 安装 redis
 ```bash
 brew install redis

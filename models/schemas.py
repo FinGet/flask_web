@@ -15,3 +15,10 @@ class UserCreate(UserBase):
 
 class UserLogin(UserBase):
     password: str
+
+class UsernameRole(UserBase):
+    role: str
+
+class UserChangepassword(BaseModel):
+    oldPassword: str
+    newPassword: str

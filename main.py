@@ -1,15 +1,17 @@
+import sys
+print('now env is:', sys.executable)
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from redis import asyncio as aioredis
 import uvicorn
 from core.init_db import init_db
 from routers import user
-import sys
 
 from config import *
 init_db()
 
-print('now env is:', sys.executable) # check which python interpreter is used
+# check which python interpreter is used
 
 
 # async def get_redis():
